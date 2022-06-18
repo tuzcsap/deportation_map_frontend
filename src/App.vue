@@ -23,9 +23,9 @@ const locationCoords = ref(null);
 const exileCoords = ref(null);
 
 // const API_URL = "http://127.0.0.1:8000"
-const API_URL = "http://109.234.39.83:8000"
+const API_URL = "https://6d19-109-234-39-83.ngrok.io"
 
-const year = ref(1937)
+const year = ref(1941)
 const geoJSONSource = ref(geoJSON[0])
 
 let m;
@@ -57,7 +57,7 @@ const fetchLocations = (year) => {
 
 
 // homeCoords = await makeGetRequest
-fetchLocations(1937)
+fetchLocations(1941)
 // console.log('home', homeCoords)
 
 // hardcoded mapping for geojsons
@@ -145,7 +145,7 @@ onMounted(() => {
     map.addSource("ussr", {
       type: "geojson",
       data:
-        geoJSONSource.value,
+        geoJSON[7],
     });
     map.addLayer({
       id: "ussr-fill",
