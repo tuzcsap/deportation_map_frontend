@@ -19,15 +19,13 @@ import along from '@turf/along'
 
 import { geoJSON } from "./assets/ussr_subset_geo";
 
-// let homeCoords;
 const locationCoords = ref(null);
 const exileCoords = ref(null);
 
-const API_URL = "http://127.0.0.1:8000"
-
+// const API_URL = "http://127.0.0.1:8000"
+const API_URL = "http://109.234.39.83:8000"
 
 const year = ref(1937)
-// const yearTest = ref(1937)
 const geoJSONSource = ref(geoJSON[0])
 
 let m;
@@ -45,7 +43,12 @@ const fetchLocations = (year) => {
         geometry: res.home.geometry,
         properties: { exile_lon: res.exile.geometry.coordinates[0], exile_lat: res.exile.geometry.coordinates[1], ...res.home.properties }
       }))
-      const exiles = response.data.map((res) => res.exile)
+      // const exiles = response.data.map((res) => res.exile)
+      const exiles = response.data.map((res) => ({
+        type: res.exile.type,
+        geometry: res.exile.geometry,
+        properties: { home_lon: res.home.geometry.coordinates[0], home_lat: res.home.geometry.coordinates[1], ...res.exile.properties }
+      }))
       locationCoords.value = homes
       exileCoords.value = exiles
     })
@@ -66,11 +69,12 @@ const changeYearListener = (year) => {
     type: "FeatureCollection",
     features:
       locationCoords.value
-
   })
-  // fetch locations filtered by year
-  // const url = `${API_URL}/cases/filter?year=${year}`
-  // const { data } = useFetch(url)
+  m.getSource("exiles").setData({
+    type: "FeatureCollection",
+    features:
+      exileCoords.value
+  })
 
 
   // change USSR borders geoJSON
@@ -124,14 +128,7 @@ const generateArcSource = (origin, destination, steps = 300) => {
 
 
 onMounted(() => {
-  // test coords for route
-  // const origin = [36.261212, 54.413849]
-  // const destination = [60.597474, 56.838011]
-
-
   // const route = generateArcSource(origin, destination)
-
-  // console.log(route)
   mapboxgl.accessToken = "pk.eyJ1IjoibWlraGFpbG1pYXppbiIsImEiOiJjbDNyNWNqOWcxYmg1M2NsMjBpMXE1Y3Z0In0.EKt0NQQJRISdpG0ah6evCw";
   const map = new mapboxgl.Map({
     container: "map",
@@ -176,7 +173,7 @@ onMounted(() => {
       source: 'locations',
       filter: ['has', 'point_count'],
       paint: {
-        'circle-color': '#f5a35b',
+        'circle-color': '#11b4da',
         'circle-radius': [
           'step',
           ['get', 'point_count'],
@@ -315,12 +312,10 @@ onMounted(() => {
     const name = e.features[0].properties.name;
     const year = e.features[0].year
 
-
     new mapboxgl.Popup()
       .setLngLat(coordinates)
       .setHTML(description)
       .addTo(map);
-
 
     console.log(`coords: ${coordinates}, dest: ${destination}`)
     const route = generateArcSource(coordinates, destination)
@@ -357,16 +352,64 @@ onMounted(() => {
         }
       })
     }
-    map.on('click', 'route', (e) => {
+    // map.on('click', 'route', (e) => {
+    //   map.removeLayer('route')
+    //   map.removeSource('route')
+    // })
+  });
+  map.on('click', 'exile-unclustered-points', (e) => {
+    // Copy coordinates array.
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const destination = [e.features[0].properties.home_lon, e.features[0].properties.home_lat]
+    const description = e.features[0].properties.description;
+    const name = e.features[0].properties.name;
+    const year = e.features[0].year
+
+    new mapboxgl.Popup()
+      .setLngLat(coordinates)
+      .setHTML(`<p>${name}<p/><p>${description}</p>`)
+      .addTo(map);
+
+    console.log(`coords: ${coordinates}, dest: ${destination}`)
+    const route = generateArcSource(coordinates, destination)
+
+    if (map.getLayer('route')) {
+      map.removeLayer('route')
+      map.removeSource('route')
+
+      map.addSource('route', {
+        type: 'geojson',
+        data: route
+      });
+      map.addLayer({
+        id: 'route',
+        source: 'route',
+        type: 'line',
+        paint: {
+          'line-width': 2,
+          'line-color': '#007cbf'
+        }
+      })
+    } else {
+      map.addSource('route', {
+        type: 'geojson',
+        data: route
+      });
+      map.addLayer({
+        id: 'route',
+        source: 'route',
+        type: 'line',
+        paint: {
+          'line-width': 4,
+          'line-color': '#007cbf'
+        }
+      })
+    }
+  });
+  map.on('click', 'route', (e) => {
       map.removeLayer('route')
       map.removeSource('route')
     })
-
-    // document.getElementById('slider').addEventListener('mouseup', (e) => {
-    //   console.log(e)
-    // })
-
-  });
 });
 </script>
 
